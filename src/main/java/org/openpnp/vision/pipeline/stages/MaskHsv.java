@@ -5,6 +5,7 @@ import java.awt.Color;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 import org.openpnp.vision.FluentCv;
 import org.openpnp.vision.pipeline.CvPipeline;
 import org.openpnp.vision.pipeline.CvStage;
@@ -14,7 +15,7 @@ import org.pmw.tinylog.Logger;
 import org.simpleframework.xml.Attribute;
 import org.simpleframework.xml.core.Commit;
 
-@Stage(description="Remove color from an image based on the HSV color space. Pixels that fall between (hueMin, saturationMin, valueMin) and (hueMax, saturationMax, valueMax) are set to black in the output image. This stage expects the input to be in HSV_FULL format, so you should do a ConvertColor with Bgr2HsvFull before this stage and ConvertColor Hsv2BgrFull after. These are not applied internally as to not complicate the use of multiple instances of this stage in series. Note that this stage can be used with any 3 channel, 8 bit per channel color space. The order of the filtered channels is hue, saturation, value, but you can use these ranges for other channels.")
+@Stage(description="Remove color from an image based on the HSV color space. Pixels that fall between (hueMin, saturationMin, valueMin) and (hueMax, saturationMax, valueMax) are set to black in the output image. This stage expects the input to be in HSV_FULL format, so you may use AutoConvert to directly use BGR data or, for multiple mask stages precede this stage with a ConvertColor with Bgr2HsvFull and follow this stage with ConvertColor Hsv2BgrFull. Note that this stage can be used with any 3 channel, 8 bit per channel color space. The order of the filtered channels is hue, saturation, value, but you can use these ranges for other channels.")
 public class MaskHsv extends CvStage {
     @Attribute
     @Property(description="First hue to be masked.  Note hues range from 0 to 255 (inclusive) but in a circular fashion so that 255 is directly adjacent to 0 (as 359 degrees is adjacent to 0 degrees).  To mask hues that cross the 255-0 boundary, set hueMin greater than hueMax.  As a rough guide, yellows fall in the range 21 to 64, greens 64 to 107, cyans 107 to 149, blues 149 to 192, magentas 192 to 235, and reds 235 to 21.")
@@ -43,6 +44,10 @@ public class MaskHsv extends CvStage {
     @Attribute(required=false)
     @Property(description="Inverts the selection of pixels to mask.")
     private Boolean invert;
+    
+    @Attribute(required=false)
+    @Property(description="Automatically convert and unconvert to HSVfull from BGR.")
+    private Boolean useBgr;
     
     public int getHueMin() {
         return hueMin;
@@ -101,6 +106,15 @@ public class MaskHsv extends CvStage {
     }
 
 
+    public Boolean getUseBgr() {
+        return useBgr;
+    }
+
+    public void setUseBgr(Boolean doAuto) {
+        this.useBgr = doAuto;
+    }
+
+
     @Commit
     public void commit() {
         //This method gets called by the deserializer when configuration .xml files are loading.  It checks the format of
@@ -120,6 +134,10 @@ public class MaskHsv extends CvStage {
                 invert = false;
             }
         }
+        if (useBgr == null) {
+    		Logger.trace( "Defaulting useBgr to false..." );
+    		useBgr = false;
+        }
     }
     
     
@@ -129,6 +147,10 @@ public class MaskHsv extends CvStage {
         Mat mask = mat.clone();
         Mat masked = mat.clone();
         Scalar color = FluentCv.colorToScalar(Color.black);
+        if(useBgr) {
+        	FluentCv.ColorCode conversion = FluentCv.ColorCode.Bgr2HsvFull;
+            Imgproc.cvtColor(mat, mat, conversion.getCode());
+        }
         mask.setTo(color);
         masked.setTo(color);
         // FCA Change to have the possibility to work inside the interval or outside (when min>max)
@@ -163,6 +185,11 @@ public class MaskHsv extends CvStage {
         }
         
         mat.copyTo(masked, mask);
+        if(useBgr) {
+        	FluentCv.ColorCode conversion = FluentCv.ColorCode.Hsv2BgrFull;
+            Imgproc.cvtColor(masked, masked, conversion.getCode());
+        }
+        
         return new Result(masked);
     }
 }

@@ -166,7 +166,7 @@ public class GcodeDriver extends AbstractReferenceDriver implements Named, Runna
     protected boolean backslashEscapedCharactersEnabled = false;
 
     @Element(required = false)
-    protected Location homingFiducialLocation = new Location(LengthUnit.Millimeters);
+    public Location homingFiducialLocation = new Location(LengthUnit.Millimeters);
 
     @ElementList(required = false, inline = true)
     public ArrayList<Command> commands = new ArrayList<>();

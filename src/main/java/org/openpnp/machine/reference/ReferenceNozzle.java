@@ -386,22 +386,24 @@ public class ReferenceNozzle extends AbstractNozzle implements ReferenceHeadMoun
                 Logger.debug("{}.loadNozzleTip({}): Finished",
                         new Object[] {getName(), nozzleTip.getName()});
 
-                try {
-                    Map<String, Object> globals = new HashMap<>();
-                    globals.put("head", getHead());
-                    globals.put("nozzle", this);
-                    Configuration.get()
-                    .getScripting()
-                    .on("NozzleTip.Loaded", globals);
-                }
-                catch (Exception e) {
-                    Logger.warn(e);
-                }
             }
         }
 
         this.nozzleTip = nt;
         currentNozzleTipId = nozzleTip.getId();
+        
+        try {
+            Map<String, Object> globals = new HashMap<>();
+            globals.put("head", getHead());
+            globals.put("nozzle", this);
+            Configuration.get()
+            .getScripting()
+            .on("NozzleTip.Loaded", globals);
+        }
+        catch (Exception e) {
+            Logger.warn(e);
+        }
+        
         if (this.nozzleTip.getCalibration().isRecalibrateOnNozzleTipChangeNeeded(this)) {
             Logger.debug("{}.loadNozzleTip() nozzle tip {} calibration needed", getName(), this.nozzleTip.getName());
             this.nozzleTip.getCalibration().calibrate(this);

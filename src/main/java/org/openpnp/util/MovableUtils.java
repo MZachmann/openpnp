@@ -1,8 +1,13 @@
 package org.openpnp.util;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.openpnp.model.Configuration;
 import org.openpnp.model.Location;
 import org.openpnp.spi.Head;
 import org.openpnp.spi.HeadMountable;
+import org.pmw.tinylog.Logger;
 
 public class MovableUtils {
     /**
@@ -33,5 +38,13 @@ public class MovableUtils {
         Location location = head.getParkLocation();
         location = location.derive(null, null, Double.NaN, Double.NaN);
         hm.moveTo(location);
+        try {
+            Map<String, Object> globals = new HashMap<>();
+            globals.put("head", head);
+            Configuration.get().getScripting().on("Head.AfterPark", globals);
+        }
+        catch (Exception e) {
+            Logger.warn(e);
+        }
     }
 }
